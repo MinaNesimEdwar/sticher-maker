@@ -10,4 +10,6 @@ export default defineConfig({
   // onnxruntime-web (used by the AI background removal) breaks when Vite pre-bundles it.
   optimizeDeps: { exclude: ['@imgly/background-removal', 'onnxruntime-web'] },
   preview: { headers: siteHeaders },
+  // Dev gets only the isolation headers (multi-threaded AI); the CSP would block Vite's inline dev scripts.
+  server: { headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'credentialless' } },
 })

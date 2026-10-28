@@ -1,4 +1,5 @@
 import { capCanvas, removeSolidColor, buildSticker } from './sticker.js'
+import { enhance, needsEnhance } from './enhance.js'
 
 export const FORMATS = { png: ['png'], webp: ['webp'], both: ['png', 'webp'] }
 export const FORMAT_LABEL = { png: 'PNG', webp: 'WebP', both: 'PNG + WebP' }
@@ -21,14 +22,23 @@ async function removeWithAI(file, onProgress) {
 }
 export const aiLoaded = () => !!imgly
 
+/* Source image for removal: the AI-enhanced version when enhancement applies. Cached per item. */
+async function getSource(item, S, onProgress) {
+  if (!needsEnhance(item.bitmap, S.enhance)) return null
+  item.enhanced ??= enhance(item.bitmap, onProgress).catch((e) => { item.enhanced = null; throw e })
+  return item.enhanced
+}
+
 /* Cached per item and removal settings, since AI removal is slow. */
 export async function getCutout(item, S, onProgress) {
-  const key = S.mode === 'color' ? `color:${S.tol}` : S.mode
+  const enhanced = await getSource(item, S, onProgress)
+  const key = `${enhanced ? 'hq:' : ''}${S.mode === 'color' ? `color:${S.tol}` : S.mode}`
   if (item.cut.has(key)) return item.cut.get(key)
+  const src = enhanced || item.bitmap
   let c
-  if (S.mode === 'ai') c = await removeWithAI(item.file, onProgress)
-  else if (S.mode === 'color') c = removeSolidColor(item.bitmap, S.tol)
-  else c = capCanvas(item.bitmap, 4000)
+  if (S.mode === 'ai') c = await removeWithAI(enhanced ? await new Promise((r) => enhanced.toBlob(r, 'image/png')) : item.file, onProgress)
+  else if (S.mode === 'color') c = removeSolidColor(src, S.tol)
+  else c = capCanvas(src, 4000)
   item.cut.set(key, c)
   return c
 }

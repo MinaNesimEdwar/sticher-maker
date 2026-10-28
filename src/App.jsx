@@ -2,12 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildSticker } from './lib/sticker.js'
 import { FORMAT_LABEL, aiLoaded, downloadFiles, downloadZip, exportItem, getCutout } from './lib/exporter.js'
 
-const DEFAULTS = { mode: 'ai', tol: 40, border: 3.5, smooth: 45, color: '#FFFFFF', holes: true, shadow: 'hard', cutline: false, size: 2500, bg: 'checker', format: 'both' }
+const DEFAULTS = { enhance: 'auto', mode: 'ai', tol: 40, border: 3.5, smooth: 45, color: '#FFFFFF', holes: true, shadow: 'hard', cutline: false, size: 2500, bg: 'checker', format: 'both' }
 
 const MODE_HINT = {
   ai: 'الأحسن للصور الحقيقية والرسومات المعقدة. أول مرة بينزّل موديل (حوالي ٨٠ ميجا) ومحتاج نت، وبعد كده بيشتغل أسرع.',
   color: 'للتصميمات اللي على خلفية بيضا أو لون واحد. سريع.',
   none: 'لو الصورة PNG شفافة جاهزة، هيضيف الإطار بس.',
+}
+const ENHANCE_HINT = {
+  auto: 'بيحسّن الصور الصغيرة أو المضغوطة بس (واتساب، سكرين شوت، صور من النت)، والصور الكبيرة بيسيبها زي ما هي.',
+  always: 'بيحسّن كل صورة، حتى الكبيرة. مفيد لو الصورة كبيرة بس مغبّشة.',
+  off: 'الصورة زي ما هي من غير تحسين. أسرع.',
 }
 const COLORS = [['#FFFFFF', 'أبيض'], ['#FFF6E5', 'كريمي'], ['#1B1B1B', 'أسود'], ['#0B6E6D', 'تيل'], ['#FFB627', 'أصفر']]
 const PREVIEW_BGS = [
@@ -78,7 +83,7 @@ export default function App() {
     }, delay)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, S.mode, S.tol, S.border, S.smooth, S.color, S.holes, S.shadow, S.cutline, progress])
+  }, [current, S.enhance, S.mode, S.tol, S.border, S.smooth, S.color, S.holes, S.shadow, S.cutline, progress])
 
   /* ── adding / removing images ── */
   const addFiles = useCallback(async (files) => {
@@ -138,6 +143,12 @@ export default function App() {
 
       <div className="app">
         <aside className="panel" aria-label="الإعدادات">
+          <div className="group">
+            <div className="title">تحسين الجودة</div>
+            <Seg label="تحسين الجودة" value={S.enhance} onChange={set('enhance')} options={[['auto', 'تلقائي'], ['always', 'دايماً'], ['off', 'من غير']]} />
+            <p className="hint">{ENHANCE_HINT[S.enhance]} بيكبّر الصورة ٤ مرات ويشيل التغبيش والتشويش بالذكاء الاصطناعي.</p>
+          </div>
+
           <div className="group">
             <div className="title">شيل الخلفية بـ</div>
             <Seg label="طريقة إزالة الخلفية" value={S.mode} onChange={set('mode')} options={[['ai', 'ذكاء اصطناعي'], ['color', 'لون سادة'], ['none', 'شفافة أصلاً']]} />
